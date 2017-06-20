@@ -1,0 +1,15 @@
+{
+  "generator-jhipster": {
+    "appsFolders": [
+      "gateway"
+    ],
+    "directoryPath": "../",
+    "monitoring": "no",
+    "serviceDiscoveryType": "eureka",
+    "jwtSecretKey": "SUPER_SECRET_JWT",
+    "dockerRepositoryName": "lyon.gigliotti.com.au",
+    "dockerPushCommand": "docker push",
+    "enableRancherLoadBalancing": true,
+    "adminPassword": "admin"
+  }
+}

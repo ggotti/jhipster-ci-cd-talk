@@ -1,0 +1,63 @@
+version: '2'
+services:
+    lb:
+      image: rancher/load-balancer-service
+      ports:
+        # Listen on public port 80 and direct traffic to private port 8080 of the service
+        - 80:8080
+      links:
+        # Target services in the same stack will be listed as a link
+        - gateway-app:gateway-app
+    gateway-app:
+        image: test.private.repo/gateway:latest
+        environment:
+            - SPRING_PROFILES_ACTIVE=prod,swagger
+            - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://admin:$${jhipster.registry.password}@jhipster-registry:8761/eureka
+            - SPRING_CLOUD_CONFIG_URI=http://admin:$${jhipster.registry.password}@jhipster-registry:8761/config
+            - SPRING_DATASOURCE_URL=jdbc:mariadb://gateway-mariadb:3306/gateway
+            - JHIPSTER_SLEEP=30
+            - JHIPSTER_REGISTRY_PASSWORD=admin
+        ports:
+            - 8080:8080
+    gateway-mariadb:
+        image: mariadb:10.1.17
+        environment:
+            - MYSQL_USER=root
+            - MYSQL_ALLOW_EMPTY_PASSWORD=yes
+            - MYSQL_DATABASE=gateway
+        command: mysqld --lower_case_table_names=1 --skip-ssl
+    
+    jhipster-registry:
+        image: jhipster/jhipster-registry:v3.0.1
+        #volumes:
+        #    - ./central-server-config:/central-config
+        # By default the JHipster Registry runs with the "prod" and "native"
+        # Spring profiles.
+        # "native" profile means the filesystem is used to store data, see
+        # http://cloud.spring.io/spring-cloud-config/spring-cloud-config.html
+        environment:
+            - SPRING_PROFILES_ACTIVE=dev,native
+            - SECURITY_USER_PASSWORD=admin
+            - SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS=file:./config/
+            # Uncomment to use a git configuration source instead of the local filesystem
+            # mounted from the registry-config-sidekick volume
+            # - GIT_URI=https://github.com/jhipster/jhipster-registry/
+            # - GIT_SEARCH_PATHS=central-config
+        ports:
+            - 8761:8761
+        volumes:
+          - /config
+        volumes_from:
+          - registry-config-sidekick
+        labels:
+          io.rancher.sidekicks: registry-config-sidekick
+    registry-config-sidekick:
+        # this docker image must be built with:
+        # docker build -t test.private.repo/registry-config-sidekick registry-config-sidekick
+        image: test.private.repo/registry-config-sidekick
+        tty: true
+        stdin_open: true
+        command:
+          - cat
+        volumes:
+          - config:/config

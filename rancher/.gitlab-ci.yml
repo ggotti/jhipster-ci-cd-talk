@@ -1,0 +1,28 @@
+stages:
+  - package-config
+  - publish
+
+variables:
+  RANCHER_URL: $RANCHER_URL
+  RANCHER_ACCESS_KEY: $RANCHER_ACCESS_KEY
+  RANCHER_SECRET_KEY: $RANCHER_SECRET_KEY
+  RANCHER_STACK_NAME: meetup
+
+# Builds the Registry-Config Sidekick and pushes it into the Docker Registry
+rancher-config:
+  image: docker:latest
+  stage: package-config
+  services:
+  - docker:dind
+  script:
+      - cd registry-config-sidekick
+      - docker build -t test.private.repo/registry-config-sidekick .
+      - docker login -u admin -p $DOCKER_REPO_PWD test.private.repo
+      - docker push test.private.repo/registry-config-sidekick
+
+# Calls Rancher-Compose to upgrade the stack
+rancher-publish:
+    image: monostream/rancher-compose
+    stage: publish
+    script:
+      - rancher-compose --project-name $RANCHER_STACK_NAME up --force-upgrade --pull --confirm-upgrade -d $SERVICE
