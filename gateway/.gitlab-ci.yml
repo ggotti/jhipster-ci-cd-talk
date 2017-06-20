@@ -1,0 +1,43 @@
+image: openjdk:8
+
+cache:
+    key: "$CI_BUILD_REF_NAME"
+    paths:
+        - node_modules
+        - .gradle/wrapper
+        - .gradle/caches
+stages:
+    - build
+    - test
+    - package
+
+before_script:
+    - export GRADLE_USER_HOME=`pwd`/.gradle
+    - chmod +x gradlew
+    - ./gradlew yarn_install -PnodeInstall --no-daemon
+
+gradle-build:
+    stage: build
+    script:
+        - ./gradlew compileJava -x check -PnodeInstall --no-daemon
+gradle-test:
+    stage: test
+    script:
+        - ./gradlew test -PnodeInstall --no-daemon
+    artifacts:
+        paths:
+            - build/reports/tests/*
+gradle-front-test:
+    stage: test
+    script:
+        - ./gradlew yarn_test -PnodeInstall --no-daemon
+    artifacts:
+        paths:
+            - build/test-results/karma/*
+gradle-repackage:
+    stage: package
+    script:
+        - ./gradlew bootRepackage -Pprod -x check -PnodeInstall --no-daemon
+    artifacts:
+        paths:
+            - build/libs/*.war
